@@ -1,7 +1,33 @@
 import torch
 
 class Config:
-    # Hardware
+    # ==================== EXPERIMENT CONTROL PANEL ====================
+    EXP_ID = "Exp01_Baseline"
+    AUTHOR = "Abhishek"
+    NOTES  = "Reproduced Lin & Liang (2026) baseline"
+
+    # 1. Architecture: "RCNN", "RCNN_LSTM", "RCNN_GRU", "YOLO_TRANSFORMER"
+    ARCH_MODE = "RCNN"
+
+    # 2. Receiver Alignment: "Baseline_SSIM", "TRA_PhaseCorr", "Cosine_ResNet"
+    RETRIEVAL_MODE = "Baseline_SSIM"
+
+    # 3. Object Selection: False (Standard Area) or True (Multi-shift Stability Score)
+    STABILITY_FILTER = False
+
+    # 4. Auxiliary Data Mode: "Aux_Permutation", "Strict_X_Center_ModeA", "Mask_4Bit_ModeB"
+    ORDER_MODE = "Aux_Permutation"
+
+    # 5. Payload Preprocessing: "NC_NE", "Only_C", "Only_E", "Both_C_and_E"
+    PAYLOAD_MODE = "NC_NE"
+
+    # 6. Clustering Seed: False (Standard K-Means++) or True (Deterministic Sorted-Hash C0)
+    DET_KMEANS = False
+
+    # Number of robustness trials per attack
+    NUM_TRIALS = 25
+    # ==================================================================
+
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     
     # Steganography Parameters (Section III & IV-C)

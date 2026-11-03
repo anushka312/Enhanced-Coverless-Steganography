@@ -43,7 +43,7 @@ class ImageAttacks:
 
     @staticmethod
     def scaling(img: np.ndarray, scale: float = 3.0) -> np.ndarray:
-        """Scales image by 3x (Table IX)."""
+        """Scales image by 3x"""
         h, w = img.shape[:2]
         return cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_LINEAR)
 
@@ -105,7 +105,6 @@ class ImageAttacks:
 
     @classmethod
     def get_all_table_ix_attacks(cls):
-        """Returns dictionary of all 22 attack configurations from Table IX."""
         return {
             "Center Cropping 5%": lambda x: cls.center_cropping(x, 0.05),
             "Center Cropping 10%": lambda x: cls.center_cropping(x, 0.10),
