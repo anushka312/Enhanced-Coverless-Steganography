@@ -181,6 +181,34 @@ def test_voc2012_uses_trainval_list(tmp_path):
     assert discover_images(config, tmp_path)[0] == ["a.jpg", "b.jpg"]
 
 
+def test_voc2012_handles_train_val_and_test_folders(tmp_path):
+    """The layout of the gopalbhattrai Kaggle dataset, with a same-named test image."""
+    train = tmp_path / "pascal-voc-2012-dataset" / "VOC2012_train_val" / "VOC2012_train_val"
+    test = tmp_path / "pascal-voc-2012-dataset" / "VOC2012_test" / "VOC2012_test"
+    _touch_images(train / "JPEGImages", ["a.jpg", "b.jpg", "extra.jpg"])
+    _touch_images(test / "JPEGImages", ["a.jpg", "t.jpg"])
+    (train / "ImageSets" / "Main").mkdir(parents=True)
+    (train / "ImageSets" / "Main" / "trainval.txt").write_text("a\nb\n")
+    config = build_config({"dataset": "voc2012", "expected_images": 2})
+    ids, paths = discover_images(config, tmp_path)
+    assert ids == ["a.jpg", "b.jpg"]
+    assert "VOC2012_train_val" in str(paths["a.jpg"])
+
+
+def test_voc2012_missing_list_names_the_problem(tmp_path):
+    _touch_images(tmp_path / "VOC2012_test" / "JPEGImages", ["t.jpg"])
+    config = build_config({"dataset": "voc2012", "expected_images": 1})
+    with pytest.raises(DataError, match="trainval.txt.*VOC2012_test"):
+        discover_images(config, tmp_path)
+
+
+def test_voc2007_is_not_confused_with_voc2012(tmp_path):
+    _touch_images(tmp_path / "VOC2007" / "JPEGImages", ["a.jpg"])
+    _touch_images(tmp_path / "VOC2012_train_val" / "JPEGImages", ["b.jpg"])
+    config = build_config({"dataset": "voc2007", "expected_images": 1})
+    assert discover_images(config, tmp_path)[0] == ["a.jpg"]
+
+
 @pytest.fixture(scope="module")
 def synthetic(tmp_path_factory):
     root = tmp_path_factory.mktemp("synthetic")
