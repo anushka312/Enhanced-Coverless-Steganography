@@ -24,25 +24,46 @@ def _images_in(folder: Path, files: list[str]) -> dict[str, Path]:
     return {name: folder / name for name in files if name.lower().endswith(_IMAGE_SUFFIXES)}
 
 
+def _names_year(folder: Path, root: Path, year: str) -> bool:
+    """True if a folder below root marks this VOC year, such as VOC2012 or VOC2012_train_val."""
+    wanted = f"voc{year}"
+    parts = folder.relative_to(root).parts
+    return any(wanted in "".join(ch for ch in part.lower() if ch.isalnum()) for part in parts)
+
+
 def _discover_voc(root: Path, year: str, use_trainval_list: bool) -> dict[str, Path]:
     images: dict[str, Path] = {}
-    allowed: set[str] = set()
+    list_files: list[Path] = []
+    image_folders: list[tuple[Path, list[str]]] = []
     for folder, files in _walk(root):
-        parts = folder.parts
-        if len(parts) >= 2 and parts[-1] == "JPEGImages" and parts[-2] == f"VOC{year}":
+        if not _names_year(folder, root, year):
+            continue
+        if folder.name == "JPEGImages":
+            image_folders.append((folder, files))
+        if folder.parts[-2:] == ("ImageSets", "Main") and "trainval.txt" in files:
+            list_files.append(folder / "trainval.txt")
+
+    if not use_trainval_list:
+        for folder, files in image_folders:
             images.update(_images_in(folder, files))
-        if (
-            use_trainval_list
-            and len(parts) >= 3
-            and parts[-3:] == ("VOC" + year, "ImageSets", "Main")
-            and "trainval.txt" in files
-        ):
-            lines = (folder / "trainval.txt").read_text(encoding="utf-8").split()
-            allowed.update(f"{line}.jpg" for line in lines)
-    if use_trainval_list:
-        if not allowed:
-            raise DataError(f"Could not find VOC{year}/ImageSets/Main/trainval.txt under {root}")
-        images = {name: path for name, path in images.items() if name in allowed}
+        return images
+
+    if not list_files:
+        found = ", ".join(str(folder) for folder, _ in image_folders) or "none"
+        raise DataError(
+            f"Could not find ImageSets/Main/trainval.txt for VOC{year} under {root}. "
+            f"Image folders found: {found}. This dataset may not include the official image list."
+        )
+    by_folder = dict(image_folders)
+    for list_file in list_files:
+        # The list and its images sit under the same split folder, so test images are never mixed in.
+        split_folder = list_file.parent.parent.parent
+        jpeg_folder = split_folder / "JPEGImages"
+        available = _images_in(jpeg_folder, by_folder.get(jpeg_folder, []))
+        for line in list_file.read_text(encoding="utf-8").split():
+            name = f"{line}.jpg"
+            if name in available:
+                images[name] = available[name]
     return images
 
 
